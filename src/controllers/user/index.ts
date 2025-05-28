@@ -36,6 +36,7 @@ export const getUser = async (req: Request, res: Response): Promise<void> => {
       email: user.email,
       createdAt: user.createdAt,
       role: user.role,
+      isVerified: user.isVerified,
     });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch user" });

@@ -1,9 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
 import { verifyAccessToken } from "../utils/jwt";
 import prisma from "../lib/prisma";
-
-const ACCESS_SECRET = process.env.ACCESS_TOKEN_SECRET!;
 
 export interface AuthRequest extends Request {
   user?: any;

@@ -98,6 +98,25 @@ export const deleteCard = async (
       return;
     }
 
+    // delete image from Cloudinary
+    if (giftCard.imageUrl) {
+      // Extract public_id from the imageUrl
+      const publicIdMatch = giftCard.imageUrl.match(
+        /cryptowise\/giftcards\/([^\.\/]+)/
+      );
+      const publicId = publicIdMatch
+        ? `cryptowise/giftcards/${publicIdMatch[1]}`
+        : null;
+
+      if (publicId) {
+        try {
+          await cloudinary.uploader.destroy(publicId);
+        } catch (err) {
+          console.warn("⚠️ Failed to delete image from Cloudinary:", err);
+        }
+      }
+    }
+
     await prisma.giftCard.delete({
       where: { id },
     });

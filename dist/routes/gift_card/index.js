@@ -1,3 +1,4 @@
+"use strict";
 // import { Router } from "express";
 // import { authenticate, authorize } from "../../middlewares/auth";
 // import {
@@ -8,9 +9,7 @@
 //   getSellerOfAGiftCard,
 // } from "../../controllers/gift-card";
 // import { upload } from "../../middlewares/upload";
-
 // const router = Router();
-
 // router
 //   .route("/create")
 //   .post(
@@ -19,7 +18,6 @@
 //     upload.single("imageUrl"),
 //     createGiftCard
 //   );
-
 // router.route("/all-gift-cards").get(getGiftCards);
 // router
 //   .route("/my-gift-cards")
@@ -30,5 +28,4 @@
 // router
 //   .route("/get-seller-of-gift-card/:id")
 //   .get(authenticate, authorize("admin"), getSellerOfAGiftCard);
-
 // export default router;

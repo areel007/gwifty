@@ -8,7 +8,7 @@ interface JwtPayload {
 }
 
 export const generateAccessToken = (userId: string) => {
-  return jwt.sign({ userId }, ACCESS_TOKEN, { expiresIn: "1h" });
+  return jwt.sign({ userId }, ACCESS_TOKEN, { expiresIn: "20m" });
 };
 
 export const generateRefreshToken = (userId: string) => {

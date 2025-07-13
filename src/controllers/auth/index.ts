@@ -15,6 +15,7 @@ import { Role } from "@prisma/client";
 import { sendConfirmation } from "../../services/email_service";
 import { generateVerificationCode } from "../../utils/verification_code";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
 // Temporary store for refresh tokens (use DB in production)
 let refreshTokens: string[] = [];
@@ -51,15 +52,15 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const hashedPassword = await hashPassword(password);
 
     // Validate role
-    const selectedRole =
-      role && Object.values(Role).includes(role) ? role : Role.USER;
+    // const selectedRole =
+    //   role && Object.values(Role).includes(role) ? role : Role.USER;
 
     const user = await prisma.user.create({
       data: {
         username,
         email,
         password: hashedPassword,
-        role: selectedRole as Role,
+        role: "USER",
         isVerified: false,
         verificationCode,
         verificationExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
@@ -67,14 +68,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     });
 
     const { password: _, ...userWithoutPassword } = user;
-
-    // send email verification link
-    await sendConfirmation(
-      user.email,
-      verificationCode,
-      process.env.EMAIL_ADDRESS!,
-      process.env.EMAIL_PASSWORD!
-    );
 
     res.status(201).json(userWithoutPassword);
   } catch (error) {
@@ -133,13 +126,13 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      res.status(401).json({ error: "Invalid email or password" });
+      res.status(404).json({ message: "Invalid email or password" });
       return;
     }
 
     const isPasswordValid = await comparePassword(password, user.password);
     if (!isPasswordValid) {
-      res.status(401).json({ error: "Invalid email or password" });
+      res.status(404).json({ message: "Invalid email or password" });
       return;
     }
 
@@ -251,10 +244,156 @@ export const sendConfirmationEmail = async (req: Request, res: Response) => {
 };
 
 export const checkAuth = (req: Request, res: Response) => {
-  const user = req.user; // Assuming user is set by the authentication middleware
-  res.status(200).json(user);
+  try {
+    const user = req.user; // Assuming user is set by the authentication middleware
+    res.status(200).json(user);
+  } catch (error) {
+    console.error("Error checking authentication:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
 export const logout = (req: Request, res: Response) => {
   res.sendStatus(204);
+};
+
+export const sendCode = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    const verificationCode = generateVerificationCode();
+
+    const user = await prisma.user.findUnique({
+      where: {
+        email: email,
+      },
+    });
+
+    await prisma.user.update({
+      where: { email },
+      data: {
+        verificationCode: verificationCode,
+        verificationExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      },
+    });
+
+    sendConfirmation(
+      email,
+      verificationCode,
+      process.env.EMAIL_ADDRESS!,
+      process.env.EMAIL_PASSWORD!
+    );
+
+    res
+      .status(200)
+      .json({ message: "code successfully send.", code: verificationCode });
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const sendResetPasswordEmail = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { email } = req.body;
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 60); // expires in 1 hour
+
+    await prisma.user.update({
+      where: { email },
+      data: {
+        passwordResetToken: resetToken,
+        passwordResetExpiresAt: expiresAt,
+      },
+    });
+
+    // TODO: Send `resetToken` to user via email. Example link:
+    // `https://yourfrontend.com/reset-password?token=${resetToken}`
+
+    const resetLink = `${process.env.CLIENT_URI}/reset-password?token=${resetToken}`;
+
+    sendConfirmation(
+      email,
+      resetLink,
+      process.env.EMAIL_ADDRESS!,
+      process.env.EMAIL_PASSWORD!
+    );
+
+    res.json({ message: "Password reset link sent to your email." });
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const resetPassword = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { token, newPassword } = req.body;
+
+  const user = await prisma.user.findFirst({
+    where: {
+      passwordResetToken: token,
+      passwordResetExpiresAt: {
+        gt: new Date(), // must not be expired
+      },
+    },
+  });
+
+  if (!user) {
+    res.status(400).json({ message: "Invalid or expired token" });
+    return;
+  }
+
+  const hashedPassword = await hashPassword(newPassword);
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      password: hashedPassword,
+      passwordResetToken: null,
+      passwordResetExpiresAt: null,
+    },
+  });
+
+  res.json({ message: "Password has been reset successfully." });
+};
+
+export const changePassword = async (req: Request, res: Response) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    const userId = req.user?.id; // Assuming user ID is set in the request
+    console.log(userId, oldPassword, newPassword);
+    if (!userId) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+    const isPasswordValid = await comparePassword(oldPassword, user.password);
+    if (!isPasswordValid) {
+      res.status(400).json({ error: "Old password is incorrect" });
+      return;
+    }
+    const hashedNewPassword = await hashPassword(newPassword);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedNewPassword },
+    });
+    res.status(200).json({ message: "Password changed successfully" });
+  } catch (error) {
+    console.error("Change password error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };

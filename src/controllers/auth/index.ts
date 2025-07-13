@@ -52,15 +52,15 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const hashedPassword = await hashPassword(password);
 
     // Validate role
-    // const selectedRole =
-    //   role && Object.values(Role).includes(role) ? role : Role.USER;
+    const selectedRole =
+      role && Object.values(Role).includes(role) ? role : Role.USER;
 
     const user = await prisma.user.create({
       data: {
         username,
         email,
         password: hashedPassword,
-        role: "USER",
+        role: selectedRole as Role,
         isVerified: false,
         verificationCode,
         verificationExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours

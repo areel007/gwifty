@@ -4,10 +4,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteUser = exports.getUser = exports.getUsers = void 0;
-const prisma_1 = __importDefault(require("../../lib/prisma"));
+const user_1 = __importDefault(require("../../models/user"));
 const getUsers = async (req, res) => {
     try {
-        const users = await prisma_1.default.user.findMany();
+        const users = await user_1.default.find();
         res.status(200).json(users.map((user) => {
             return {
                 id: user.id,
@@ -26,9 +26,7 @@ exports.getUsers = getUsers;
 const getUser = async (req, res) => {
     try {
         const userId = req.params.id;
-        const user = await prisma_1.default.user.findUnique({
-            where: { id: userId },
-        });
+        const user = await user_1.default.findOne({ _id: userId });
         if (!user) {
             res.status(404).json({ error: "User not found" });
             return;
@@ -50,15 +48,13 @@ exports.getUser = getUser;
 const deleteUser = async (req, res) => {
     try {
         const userId = req.params.id;
-        const user = await prisma_1.default.user.findUnique({
-            where: { id: userId },
-        });
+        const user = await user_1.default.findOne({ _id: userId });
         if (!user) {
             res.status(404).json({ error: "User not found" });
             return;
         }
-        await prisma_1.default.trade.deleteMany({ where: { sellerId: userId } });
-        await prisma_1.default.user.delete({ where: { id: userId } });
+        await user_1.default.deleteOne({ _id: userId });
+        // await prisma.trade.deleteMany({ where: { sellerId: userId } });
         res.status(200).json({ message: "User deleted successfully" });
     }
     catch (error) {

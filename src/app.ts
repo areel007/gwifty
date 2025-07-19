@@ -14,7 +14,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: "http://localhost:3000", // your frontend origin
+    origin: "https://gwifty.vercel.app/", // your frontend origin
     credentials: true, // ✅ allow cookies
   })
 );

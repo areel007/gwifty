@@ -12,12 +12,15 @@ const app = express();
 
 // setups
 
-app.use(
-  cors({
-    origin: "https://gwifty.vercel.app/", // your frontend origin
-    credentials: true, // ✅ allow cookies
-  })
-);
+const corsOptions = {
+  origin: "*", // Your frontend origin
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE", // Allowed HTTP methods
+  credentials: true, // Allow credentials (cookies, authorization headers)
+  optionsSuccessStatus: 204,
+  allowedHeaders: "Content-Type, Authorization",
+};
+
+app.use(cors(corsOptions));
 
 app.use(cookieParser());
 

@@ -13,10 +13,14 @@ const cookie_parser_1 = __importDefault(require("cookie-parser"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 // setups
-app.use((0, cors_1.default)({
-    origin: "http://localhost:3000", // your frontend origin
-    credentials: true, // ✅ allow cookies
-}));
+const corsOptions = {
+    origin: "*", // Your frontend origin
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE", // Allowed HTTP methods
+    credentials: true, // Allow credentials (cookies, authorization headers)
+    optionsSuccessStatus: 204,
+    allowedHeaders: "Content-Type, Authorization",
+};
+app.use((0, cors_1.default)(corsOptions));
 app.use((0, cookie_parser_1.default)());
 app.use((0, cookie_parser_1.default)());
 app.use((0, helmet_1.default)());

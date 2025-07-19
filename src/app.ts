@@ -13,9 +13,9 @@ const app = express();
 // setups
 
 const corsOptions = {
-  origin: "*", // Your frontend origin
-  methods: "GET,HEAD,PUT,PATCH,POST,DELETE", // Allowed HTTP methods
-  credentials: true, // Allow credentials (cookies, authorization headers)
+  origin: "https://gwifty.vercel.app", // ✅ specific origin instead of "*"
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  credentials: true, // ✅ still allow credentials
   optionsSuccessStatus: 204,
   allowedHeaders: "Content-Type, Authorization",
 };

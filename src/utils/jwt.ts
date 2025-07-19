@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 const ACCESS_TOKEN = process.env.ACCESS_TOKEN_SECRET!;
 const REFRESH_TOKEN = process.env.REFRESH_TOKEN_SECRET!;

@@ -13,7 +13,7 @@ const app = express();
 // setups
 
 const corsOptions = {
-  origin: "https://gwifty.vercel.app", // ✅ specific origin instead of "*"
+  origin: "http://localhost:3000", // ✅ specific origin instead of "*"
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true, // ✅ still allow credentials
   optionsSuccessStatus: 204,

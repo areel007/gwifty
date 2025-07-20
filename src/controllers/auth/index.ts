@@ -120,35 +120,30 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
-
     if (!user) {
-      res.status(404).json({ message: "Invalid email or password" });
+      res.status(401).json({ message: "Invalid email or password" });
       return;
     }
 
     const isPasswordValid = await comparePassword(password, user.password);
-
     if (!isPasswordValid) {
-      res.status(404).json({ message: "Invalid email or password" });
+      res.status(401).json({ message: "Invalid email or password" });
       return;
     }
 
     const accessToken = jwt.sign(
-      { id: user?._id },
+      { id: user._id },
       process.env.ACCESS_TOKEN_SECRET!,
-      {
-        expiresIn: "20m",
-      }
+      { expiresIn: "20m" }
     );
 
     const refreshToken = jwt.sign(
-      { id: user?._id },
+      { id: user._id },
       process.env.REFRESH_TOKEN_SECRET!,
-      {
-        expiresIn: "1h",
-      }
+      { expiresIn: "1h" }
     );
 
+    // TODO: Save refreshToken in a persistent store, not just in memory
     refreshTokens.push(refreshToken);
 
     const userWithoutPassword = {
@@ -164,11 +159,12 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       .cookie("refreshToken", refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        sameSite: "none", // if frontend/backend are on different origins
       })
       .status(200)
-      .json({ ...userWithoutPassword, accessToken }); // ✅ Only return access token
+      .json({ ...userWithoutPassword, accessToken });
   } catch (error) {
+    console.error("Login error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

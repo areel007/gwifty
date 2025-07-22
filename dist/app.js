@@ -14,9 +14,12 @@ dotenv_1.default.config();
 const app = (0, express_1.default)();
 // setups
 const corsOptions = {
-    origin: "https://gwifty.vercel.app", // ✅ specific origin instead of "*"
+    origin: [
+        "http://localhost:3000", // ✅ dev
+        "https://gwifty.vercel.app", // ✅ deployed frontend
+    ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-    credentials: true, // ✅ still allow credentials
+    credentials: true,
     optionsSuccessStatus: 204,
     allowedHeaders: "Content-Type, Authorization",
 };

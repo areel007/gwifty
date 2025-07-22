@@ -2,6 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = require("mongoose");
 const trade = new mongoose_1.Schema({
+    username: {
+        type: String,
+    },
     type: {
         type: String,
         enum: ["AMAZON", "STEAM", "APPLE", "GOOGLE_PAY", "NETFLIX"],
@@ -10,7 +13,7 @@ const trade = new mongoose_1.Schema({
         type: Number,
     },
     seller: {
-        type: [mongoose_1.Schema.Types.ObjectId],
+        type: mongoose_1.Schema.Types.ObjectId,
         ref: "User",
     },
     status: {

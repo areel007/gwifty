@@ -37,12 +37,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.viewAllTrades = exports.updateTradeStatus = exports.viewTrades = exports.InitiateTrade = void 0;
-const prisma_1 = __importDefault(require("../../lib/prisma"));
 const email_service_1 = require("../../services/email_service");
 const csvPath = require("path").resolve(process.cwd(), "trades.csv");
+const trade_1 = __importDefault(require("../../models/trade"));
 const InitiateTrade = async (req, res) => {
     try {
-        const { name, whatsappNumber, email, type, amount, sellerId } = req.body;
+        const { name, whatsappNumber, email, type, amount } = req.body;
+        const seller = req.user.id;
         // write card into a csv file in the root folder
         const fs = await Promise.resolve().then(() => __importStar(require("fs")));
         const path = await Promise.resolve().then(() => __importStar(require("path")));
@@ -59,13 +60,11 @@ const InitiateTrade = async (req, res) => {
                 content: csvBuffer,
             },
         ]);
-        await prisma_1.default.trade.create({
-            data: {
-                type: type,
-                amount,
-                sellerId,
-                username: name,
-            },
+        await trade_1.default.create({
+            type: type,
+            amount,
+            seller,
+            username: name,
         });
         res.status(201).json({
             message: "Trade initiated successfully",
@@ -84,27 +83,20 @@ const viewTrades = async (req, res) => {
             res.status(400).json({ message: "Seller ID is required" });
             return;
         }
-        const trades = await prisma_1.default.trade.findMany({
-            where: {
-                sellerId: sellerId,
-            },
-        });
+        const trades = await trade_1.default.find({ seller: sellerId });
         res.status(200).json(trades);
     }
     catch (error) {
-        console.error("Error viewing trade:", error);
+        console.error("Error viewing trades:", error);
         res.status(500).json({ message: "Internal server error" });
     }
 };
 exports.viewTrades = viewTrades;
 const updateTradeStatus = async (req, res) => {
     try {
-        const { tradeId } = req.params;
+        const tradeId = req.params.tradeId;
         const { status } = req.body;
-        const trade = await prisma_1.default.trade.update({
-            where: { id: tradeId },
-            data: { status },
-        });
+        const trade = await trade_1.default.findByIdAndUpdate(tradeId, { status }, { new: true });
         res.status(200).json(trade);
     }
     catch (error) {
@@ -114,7 +106,7 @@ const updateTradeStatus = async (req, res) => {
 };
 exports.updateTradeStatus = updateTradeStatus;
 const viewAllTrades = async (req, res) => {
-    const trades = await prisma_1.default.trade.findMany();
+    const trades = await trade_1.default.find();
     if (!trades || trades.length === 0) {
         res.status(200).json(trades);
         return;

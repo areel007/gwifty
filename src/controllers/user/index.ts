@@ -61,7 +61,12 @@ export const deleteUser = async (
 
     await User.deleteOne({ _id: userId });
 
-    // await prisma.trade.deleteMany({ where: { sellerId: userId } });
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: true, // same flags used when you set it
+      sameSite: "none", // same flags used when you set it
+    });
+
     res.status(200).json({ message: "User deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: "Failed to delete user" });

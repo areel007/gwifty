@@ -96,20 +96,17 @@ const login = async (req, res) => {
         const { email, password } = req.body;
         const user = await user_1.default.findOne({ email });
         if (!user) {
-            res.status(404).json({ message: "Invalid email or password" });
+            res.status(401).json({ message: "Invalid email or password" });
             return;
         }
         const isPasswordValid = await (0, hash_password_1.comparePassword)(password, user.password);
         if (!isPasswordValid) {
-            res.status(404).json({ message: "Invalid email or password" });
+            res.status(401).json({ message: "Invalid email or password" });
             return;
         }
-        const accessToken = jsonwebtoken_1.default.sign({ id: user?._id }, process.env.ACCESS_TOKEN_SECRET, {
-            expiresIn: "20m",
-        });
-        const refreshToken = jsonwebtoken_1.default.sign({ id: user?._id }, process.env.REFRESH_TOKEN_SECRET, {
-            expiresIn: "1h",
-        });
+        const accessToken = jsonwebtoken_1.default.sign({ id: user._id }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "20m" });
+        const refreshToken = jsonwebtoken_1.default.sign({ id: user._id }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "1h" });
+        // TODO: Save refreshToken in a persistent store, not just in memory
         refreshTokens.push(refreshToken);
         const userWithoutPassword = {
             id: user._id,
@@ -122,13 +119,15 @@ const login = async (req, res) => {
         res
             .cookie("refreshToken", refreshToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
+            // secure: process.env.NODE_ENV === "production",
+            secure: true,
+            sameSite: "none", // if frontend/backend are on different origins
         })
             .status(200)
-            .json({ ...userWithoutPassword, accessToken }); // ✅ Only return access token
+            .json({ ...userWithoutPassword, accessToken });
     }
     catch (error) {
+        console.error("Login error:", error);
         res.status(500).json({ error: "Internal server error" });
     }
 };
@@ -143,10 +142,15 @@ const refresh = async (req, res) => {
         res.status(403).json({ error: "Invalid refresh token" });
         return;
     }
-    jsonwebtoken_1.default.verify(token, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
-        if (err)
+    jsonwebtoken_1.default.verify(token, process.env.REFRESH_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
             return res.status(403).json({ error: "Invalid refresh token" });
-        const userId = user.userId;
+        }
+        // ✅ use the correct field from your payload
+        const userId = decoded.id;
+        if (!userId) {
+            return res.status(403).json({ error: "Invalid token payload" });
+        }
         const accessToken = (0, jwt_1.generateAccessToken)(userId.toString());
         const newRefreshToken = (0, jwt_1.generateRefreshToken)(userId.toString());
         // Replace old refresh token
@@ -157,11 +161,11 @@ const refresh = async (req, res) => {
         res
             .cookie("refreshToken", newRefreshToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
+            secure: true, // ✅ important for cross-site
+            sameSite: "none", // ✅ important for cross-site
         })
             .status(200)
-            .json({ accessToken }); // ✅ Only return access token
+            .json({ accessToken });
     });
 };
 exports.refresh = refresh;

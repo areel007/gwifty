@@ -13,13 +13,15 @@ const app = express();
 // setups
 
 const corsOptions = {
-  origin: "http://localhost:3000", // ✅ specific origin instead of "*"
+  origin: [
+    "http://localhost:3000", // ✅ dev
+    "https://gwifty.vercel.app", // ✅ deployed frontend
+  ],
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-  credentials: true, // ✅ still allow credentials
+  credentials: true,
   optionsSuccessStatus: 204,
   allowedHeaders: "Content-Type, Authorization",
 };
-
 app.use(cors(corsOptions));
 
 app.use(cookieParser());

@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from "express";
-import { verifyAccessToken } from "../utils/jwt";
-import prisma from "../lib/prisma";
+import jwt, { JwtPayload } from "jsonwebtoken";
+import User from "../models/user"; // adjust path as needed
 
-export interface AuthRequest extends Request {
-  user?: any;
+interface AuthRequest extends Request {
+  user?: any; // you can type this more strictly if you have a User type
 }
 
 export const authenticate = async (
@@ -21,25 +21,30 @@ export const authenticate = async (
   const token = authHeader.split(" ")[1];
 
   try {
-    const decoded = verifyAccessToken(token);
+    // ✅ verify and decode the token
+    const decoded = jwt.verify(
+      token,
+      process.env.ACCESS_TOKEN_SECRET!
+    ) as JwtPayload;
 
-    if (!decoded || typeof decoded !== "object" || !("userId" in decoded)) {
+    // ✅ check if payload contains id
+    if (!decoded || typeof decoded !== "object" || !decoded.id) {
       res.status(401).json({ error: "Invalid or expired token" });
       return;
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-    });
-
+    // ✅ fetch user from database
+    const user = await User.findById(decoded.id);
     if (!user) {
       res.status(401).json({ error: "User not found" });
       return;
     }
 
-    req.user = user; // ✅ Attach full user object
+    // ✅ attach user to request and proceed
+    req.user = user;
     next();
   } catch (error) {
+    console.error("Auth error:", error);
     res.status(401).json({ error: "Invalid or expired token" });
   }
 };

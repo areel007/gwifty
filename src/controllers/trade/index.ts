@@ -3,14 +3,14 @@ import prisma from "../../lib/prisma";
 import { sendTradeNotification } from "../../services/email_service";
 const csvPath = require("path").resolve(process.cwd(), "trades.csv");
 import Trade from "../../models/trade";
-import User from "../../models/user";
 
 export const InitiateTrade = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const { name, whatsappNumber, email, type, amount, sellerId } = req.body;
+    const { name, whatsappNumber, email, type, amount } = req.body;
+    const seller = req.user.id;
 
     // write card into a csv file in the root folder
     const fs = await import("fs");
@@ -39,7 +39,7 @@ export const InitiateTrade = async (
     await Trade.create({
       type: type,
       amount,
-      sellerId,
+      seller,
       username: name,
     });
 
@@ -64,15 +64,9 @@ export const viewTrades = async (
       return;
     }
 
-    const user = await User.findById(sellerId).populate("trades");
+    const trades = await Trade.find({ seller: sellerId });
 
-    if (!user) {
-      res.status(404).json({ message: "Seller not found" });
-      return;
-    }
-
-    // Return the populated trades
-    res.status(200).json(user);
+    res.status(200).json(trades);
   } catch (error) {
     console.error("Error viewing trades:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -84,12 +78,14 @@ export const updateTradeStatus = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { tradeId } = req.params;
+    const tradeId = req.params.tradeId;
     const { status } = req.body;
-    const trade = await prisma.trade.update({
-      where: { id: tradeId },
-      data: { status },
-    });
+    const trade = await Trade.findByIdAndUpdate(
+      tradeId,
+      { status },
+      { new: true }
+    );
+
     res.status(200).json(trade);
   } catch (error) {
     console.error("Error updating trade status:", error);
@@ -98,7 +94,7 @@ export const updateTradeStatus = async (
 };
 
 export const viewAllTrades = async (req: Request, res: Response) => {
-  const trades = await prisma.trade.findMany();
+  const trades = await Trade.find();
   if (!trades || trades.length === 0) {
     res.status(200).json(trades);
     return;

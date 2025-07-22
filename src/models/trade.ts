@@ -1,6 +1,9 @@
 import { Schema, model } from "mongoose";
 
 const trade = new Schema({
+  username: {
+    type: String,
+  },
   type: {
     type: String,
     enum: ["AMAZON", "STEAM", "APPLE", "GOOGLE_PAY", "NETFLIX"],
@@ -9,7 +12,7 @@ const trade = new Schema({
     type: Number,
   },
   seller: {
-    type: [Schema.Types.ObjectId],
+    type: Schema.Types.ObjectId,
     ref: "User",
   },
   status: {

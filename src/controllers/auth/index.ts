@@ -126,6 +126,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     }
 
     const isPasswordValid = await comparePassword(password, user.password);
+
     if (!isPasswordValid) {
       res.status(401).json({ message: "Invalid email or password" });
       return;
@@ -158,7 +159,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     res
       .cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        // secure: process.env.NODE_ENV === "production",
+        secure: true,
         sameSite: "none", // if frontend/backend are on different origins
       })
       .status(200)
@@ -185,10 +187,18 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
   jwt.verify(
     token,
     process.env.REFRESH_TOKEN_SECRET!,
-    (err: Error | null, user: any) => {
-      if (err) return res.status(403).json({ error: "Invalid refresh token" });
+    (err: jwt.VerifyErrors | null, decoded: any) => {
+      if (err) {
+        return res.status(403).json({ error: "Invalid refresh token" });
+      }
 
-      const userId = (user as jwt.JwtPayload).userId;
+      // ✅ use the correct field from your payload
+      const userId = (decoded as jwt.JwtPayload).id;
+
+      if (!userId) {
+        return res.status(403).json({ error: "Invalid token payload" });
+      }
+
       const accessToken = generateAccessToken(userId.toString());
       const newRefreshToken = generateRefreshToken(userId.toString());
 
@@ -200,11 +210,11 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
       res
         .cookie("refreshToken", newRefreshToken, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
+          secure: true, // ✅ important for cross-site
+          sameSite: "none", // ✅ important for cross-site
         })
         .status(200)
-        .json({ accessToken }); // ✅ Only return access token
+        .json({ accessToken });
     }
   );
 };

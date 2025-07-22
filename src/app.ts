@@ -15,7 +15,7 @@ const app = express();
 const corsOptions = {
   origin: [
     "http://localhost:3000", // ✅ dev
-    "https://cryptowise-client.vercel.app/", // ✅ deployed frontend
+    "https://cryptowise-client.vercel.app", // ✅ deployed frontend
   ],
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true,
